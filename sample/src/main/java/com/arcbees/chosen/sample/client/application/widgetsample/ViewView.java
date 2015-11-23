@@ -16,6 +16,12 @@
 
 package com.arcbees.chosen.sample.client.application.widgetsample;
 
+import java.util.List;
+import java.util.logging.Logger;
+
+import com.arcbees.chosen.client.ChosenImpl;
+import com.arcbees.chosen.client.ChosenOptions;
+import com.arcbees.chosen.client.ResultsFilter;
 import com.arcbees.chosen.client.event.ChosenChangeEvent;
 import com.arcbees.chosen.client.event.ChosenChangeEvent.ChosenChangeHandler;
 import com.arcbees.chosen.client.event.HidingDropDownEvent.HidingDropDownHandler;
@@ -41,6 +47,7 @@ import com.google.gwt.user.client.ui.Widget;
 import static com.google.gwt.query.client.GQuery.$;
 
 public class ViewView implements IsWidget {
+
     @UiField
     static AppResources res;
 
@@ -50,6 +57,27 @@ public class ViewView implements IsWidget {
         public String getLiteral() {
             String name = name();
             return name.charAt(0) + name.substring(1, name.length()).toLowerCase();
+        }
+    }
+
+    private static class ChoicesCustomFilter implements ResultsFilter {
+
+        private final Logger log = Logger.getLogger("ViewView");
+
+        private ChosenValueListBox<Choices> valueListBox;
+
+        @Override
+        public void filter(String searchText, ChosenImpl chosen, boolean isShowing) {
+            List<Choices> list = Lists.newArrayList(Choices.values());
+            list.add(0, null);
+            if (valueListBox != null) {
+                log.fine("Setting new values from custom filter with null element");
+                valueListBox.setAcceptableValues(list);
+            }
+        }
+
+        public void setValueListBox(ChosenValueListBox<Choices> valueListBox) {
+            this.valueListBox = valueListBox;
         }
     }
 
@@ -136,7 +164,12 @@ public class ViewView implements IsWidget {
 
     public ViewView() {
         teamChosen = new ChosenListBox(true);
-        chosenValueListBox = new ChosenValueListBox<Choices>(new ChoiceRenderer());
+        ChosenOptions options = new ChosenOptions();
+        ChoicesCustomFilter customFilter = new ChoicesCustomFilter();
+        options.setAllowSingleDeselect(true);
+        options.setResultFilter(customFilter);
+        chosenValueListBox = new ChosenValueListBox<Choices>(new ChoiceRenderer(), options);
+        customFilter.setValueListBox(chosenValueListBox);
         multipleChosenValueListBox = new MultipleChosenValueListBox<Choices>(new ChoiceRenderer());
 
         widget = binder.createAndBindUi(this);
@@ -202,9 +235,6 @@ public class ViewView implements IsWidget {
         teamChosen.setPlaceholderText("Choose your favourite teams...");
 
         teamChosen.setWidth("300px");
-
-        chosenValueListBox.setAcceptableValues(Lists.newArrayList(Choices.values()));
-        chosenValueListBox.setValue(Choices.THIRD);
 
         multipleChosenValueListBox.setAcceptableValues(Lists.newArrayList(Choices.values()));
         multipleChosenValueListBox.setValue(Lists.newArrayList(Choices.FIFTH, Choices.FIRST, Choices.FOURTH));
